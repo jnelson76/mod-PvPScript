@@ -79,7 +79,7 @@ public:
     bool CheckConditions(Player* killer, Player* killed)
     {
         //if killer has same IP as death player do not drop loot as its cheating!
-        if (spawnchestIP)
+        if (spawnchestIP && killer)
             if (killer->GetSession()->GetRemoteAddress() == killed->GetSession()->GetRemoteAddress())
                 return false;
 
@@ -88,14 +88,14 @@ public:
             return false;
 
         // If player kills self do not drop loot
-        if (killer->GetGUID() == killed->GetGUID())
+        if (killer && killer->GetGUID() == killed->GetGUID())
             return false;
 
-        // if killer not worth honnor do not drop loot
-        if (!killer->isHonorOrXPTarget(killed))
+        // if killer not worth honor do not drop loot
+        if (killer && !killer->isHonorOrXPTarget(killed))
             return false;
 
-        // Dont drop chess if player is in battleground
+        // Dont drop chest if player is in battleground
         if (killed->GetMap()->IsBattlegroundOrArena())
             return false;
 
@@ -110,17 +110,18 @@ public:
 
     void AnnounceKill(uint32 phase, Player* killed, std::string name)
     {
+        ChatHandler handler(killed->GetSession());
         switch (phase)
         {
         case 1: //Announce in chat handler
-            ChatHandler(killed->GetSession()).PSendSysMessage("You have been killed by player [%s] ", name.c_str());
+            handler.PSendSysMessage("You have been killed by player [%s]", name.c_str());
             break;
-        case 2: //Announce in notifaction
-            killed->GetSession()->SendNotification("You have been slain by [%s]", name.c_str());
+        case 2: //Announce in notification (replaced with chat message)
+            handler.PSendSysMessage("You have been slain by [%s]", name.c_str());
             break;
-        case 3: // Announe in Notifaction and chathandler
-            killed->GetSession()->SendNotification("You have been slain by [%s]", name.c_str());
-            ChatHandler(killed->GetSession()).PSendSysMessage("You have been killed by player [%s] ", name.c_str());
+        case 3: // Announce in both
+            handler.PSendSysMessage("You have been slain by [%s]", name.c_str());
+            handler.PSendSysMessage("You have been killed by player [%s]", name.c_str());
             break;
         }
     }
